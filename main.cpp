@@ -5,13 +5,13 @@
 struct Node {
     // 这两个指针会造成什么问题？请修复
     std::shared_ptr<Node> next;
-    std::shared_ptr<Node> prev;
+    Node* prev;
     // 如果能改成 unique_ptr 就更好了!
 
     int value;
 
     // 这个构造函数有什么可以改进的？
-    Node(int val) {
+    Node(int val):value(val) {
         value = val;
     }
 
@@ -22,7 +22,7 @@ struct Node {
         if (prev)
             prev->next = node;
         if (next)
-            next->prev = node;
+            next->prev = node.get();
     }
 
     void erase() {
@@ -44,8 +44,25 @@ struct List {
 
     List(List const &other) {
         printf("List 被拷贝！\n");
-        head = other.head;  // 这是浅拷贝！
+        // head = other.head;  // 这是浅拷贝！
         // 请实现拷贝构造函数为 **深拷贝**
+        if(other.head){
+
+            head = std::make_shared<Node>(other.head->value);
+            std::shared_ptr<Node> tmp = head;
+            std::shared_ptr<Node> othernext = other.head->next;
+            while(othernext != nullptr){
+                
+                auto t1 = std::make_shared<Node>(othernext->value);
+                tmp->next = t1;
+                t1->prev = tmp.get();
+                othernext = othernext->next;
+                tmp = tmp->next;
+
+            }
+
+        }
+
     }
 
     List &operator=(List const &) = delete;  // 为什么删除拷贝赋值函数也不出错？
@@ -67,7 +84,7 @@ struct List {
         auto node = std::make_shared<Node>(value);
         node->next = head;
         if (head)
-            head->prev = node;
+            head->prev = node.get();
         head = node;
     }
 
@@ -80,7 +97,7 @@ struct List {
     }
 };
 
-void print(List lst) {  // 有什么值得改进的？
+void print(const List & lst) {  // 有什么值得改进的？
     printf("[");
     for (auto curr = lst.front(); curr; curr = curr->next.get()) {
         printf(" %d", curr->value);
